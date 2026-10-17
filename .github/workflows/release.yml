@@ -1,0 +1,140 @@
+name: Release assets
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing published release tag to build, such as v0.5.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize retries for the same tag without cancelling an upload in progress.
+concurrency:
+  group: release-assets-${{ github.event.release.tag_name || inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish-assets:
+    name: Build and attach Intel beta assets
+    # Verified 2026-10-18; includes Xcode 26.3, macOS 26.2 SDK, and GitHub CLI.
+    # https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      OCLP_DOCTOR_BUILD_ROOT: ${{ runner.temp }}/oclp-doctor-release-build
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            printf 'Expected a release tag such as v0.5.1.\n' >&2
+            exit 1
+          fi
+
+      - name: Check out the release tag
+        # https://github.com/actions/checkout/releases/tag/v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          persist-credentials: false
+
+      - name: Verify selected toolchain
+        run: |
+          test -d "$DEVELOPER_DIR"
+          test "$(/usr/bin/uname -m)" = x86_64
+          /usr/bin/xcodebuild -version
+          /usr/bin/xcrun swift --version
+          SDK_VERSION="$(/usr/bin/xcrun --sdk macosx --show-sdk-version)"
+          case "$SDK_VERSION" in
+            26.*) printf 'Building with macOS SDK %s\n' "$SDK_VERSION" ;;
+            *) printf 'Expected macOS SDK 26; found %s\n' "$SDK_VERSION" >&2; exit 1 ;;
+          esac
+          gh --version
+
+      - name: Run automated tests
+        # Fixture tests only; never launch a real diagnostic scan or GUI window test.
+        run: bash Scripts/test.sh -j 4
+
+      - name: Build the Intel app
+        # The tagged build script strips debug symbols and bundles LICENSE/NOTICE.
+        run: bash Scripts/build-app.sh "$RUNNER_TEMP/oclp-doctor-release-app"
+
+      - name: Verify release bundle
+        run: |
+          APP="$RUNNER_TEMP/oclp-doctor-release-app/OCLP Doctor.app"
+          BINARY="$APP/Contents/MacOS/OCLPDoctor"
+          test -x "$BINARY"
+          test "$(/usr/bin/lipo -archs "$BINARY")" = x86_64
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
+          test "$VERSION" = "${RELEASE_TAG#v}"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist")" = 12.0
+          test -s "$APP/Contents/Resources/LICENSE"
+          test -s "$APP/Contents/Resources/NOTICE"
+          /usr/bin/cmp LICENSE "$APP/Contents/Resources/LICENSE"
+          /usr/bin/cmp NOTICE "$APP/Contents/Resources/NOTICE"
+          /usr/bin/plutil -lint "$APP/Contents/Info.plist"
+          /usr/bin/codesign --verify --strict "$APP"
+          SIGNATURE_DETAILS="$(/usr/bin/codesign -dv --verbose=4 "$APP" 2>&1)"
+          printf '%s\n' "$SIGNATURE_DETAILS" | /usr/bin/grep -Fx 'Signature=adhoc'
+
+      - name: Package and checksum the app
+        run: |
+          APP="$RUNNER_TEMP/oclp-doctor-release-app/OCLP Doctor.app"
+          ASSET_DIR="$RUNNER_TEMP/oclp-doctor-release-assets"
+          ARCHIVE_NAME="OCLP-Doctor-${RELEASE_TAG}-macOS-Intel.zip"
+          UNPACK_DIR="$RUNNER_TEMP/oclp-doctor-release-unpacked"
+          mkdir -p "$ASSET_DIR" "$UNPACK_DIR"
+          # man ditto: exclude resource forks, extended attributes, ACLs, quarantine.
+          /usr/bin/ditto -c -k --keepParent --norsrc --noextattr --noacl --noqtn \
+            "$APP" "$ASSET_DIR/$ARCHIVE_NAME"
+          /usr/bin/ditto -x -k --norsrc --noextattr --noacl --noqtn \
+            "$ASSET_DIR/$ARCHIVE_NAME" "$UNPACK_DIR"
+          /usr/bin/codesign --verify --strict "$UNPACK_DIR/OCLP Doctor.app"
+          cd "$ASSET_DIR"
+          /usr/bin/shasum -a 256 "$ARCHIVE_NAME" > SHA256SUMS
+          /usr/bin/shasum -a 256 -c SHA256SUMS
+
+      - name: Upload to the existing release without replacing assets
+        # Only this step receives a CLI token. No signing credentials are used.
+        # https://cli.github.com/manual/gh_release_view
+        # https://cli.github.com/manual/gh_release_upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_PROMPT_DISABLED: 1
+        run: |
+          ASSET_DIR="$RUNNER_TEMP/oclp-doctor-release-assets"
+          ARCHIVE_NAME="OCLP-Doctor-${RELEASE_TAG}-macOS-Intel.zip"
+          RELEASE_JSON="$RUNNER_TEMP/oclp-doctor-release-before.json"
+          gh release view "$RELEASE_TAG" --repo "$GH_REPO" \
+            --json tagName,isDraft,isImmutable,assets > "$RELEASE_JSON"
+          python3 - "$RELEASE_JSON" "$RELEASE_TAG" "$ARCHIVE_NAME" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              release = json.load(stream)
+          if release.get("tagName") != sys.argv[2] or release.get("isDraft") is not False:
+              raise SystemExit("The exact requested release must already be published.")
+          if release.get("isImmutable") is not False:
+              raise SystemExit("Release immutability prevents adding assets; no release settings were changed.")
+          names = {asset["name"] for asset in release.get("assets", [])}
+          if names.intersection({sys.argv[3], "SHA256SUMS"}):
+              raise SystemExit("A target asset already exists. Review the release before retrying; nothing was overwritten.")
+          PY
+          # No --clobber: a concurrent upload also fails rather than replacing files.
+          # Upload modifies only assets, preserving the release's prerelease/latest state.
+          gh release upload "$RELEASE_TAG" \
+            "$ASSET_DIR/$ARCHIVE_NAME" "$ASSET_DIR/SHA256SUMS" --repo "$GH_REPO"
+
+      # No release creation, state changes, notarization, GUI launch, host diagnostics,
+      # personal logs, or Actions artifact uploads are part of this workflow.

@@ -1,0 +1,18 @@
+OCLP Doctor — minimal vector icon
+
+Source: AppIcon.svg (editable original SVG paths and gradients).
+Production preview: AppIconPreview.png (1024 × 1024, transparent outside the tile).
+Revision: Beta 0.5.0 build 8, 2026-10-18.
+
+The mark contains only an open O and a small plus in teal and blue. The pale tile
+uses a quiet gradient and thin edge highlight, without lens effects, shadows,
+illustrative tools, a monitor, text, or a diagnostic checklist.
+
+The SVG contains no embedded bitmap or external logo.
+
+Re-render from the project directory:
+  swift Scripts/render-icon.swift Assets/AppIcon.svg Assets/AppIconPreview.png 1024
+
+AppKit rasterizes the SVG deterministically. build-app.sh creates the ICNS and
+bundles the matching preview for the in-app logo. Previews were inspected at
+1024 and 64 pixels. The icon is decorative branding, not a diagnostic result.

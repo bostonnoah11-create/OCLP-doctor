@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest a focused improvement to read-only diagnostics.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem and the evidence a useful diagnostic should provide. Read-only diagnostics are the current scope; OCLP Doctor is independent of Dortania and the official OCLP project.
+
+        This request will be public. Do not attach raw logs, full reports, private files, or identifying information. A short description or synthetic example is enough.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Who encounters this problem, and what is difficult with the current behavior?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe what the app should show or do, including how it should handle missing or ambiguous evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How could this be verified?
+      description: Suggest an observable result, a synthetic example, or a primary source. Do not submit personal logs or private configuration files.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Relevant environment (optional)
+      description: If specific to a system, give the Mac model identifier, macOS version/build, and OCLP Doctor version. Model identifiers are sufficient; exclude serial numbers and UUIDs.
+      placeholder: "Model identifier / macOS version and build / app version"
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (optional)
+      description: Note an existing workflow or a simpler way to address the same problem.
+  - type: checkboxes
+    id: privacy-review
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this proposal.
+          required: true
+        - label: I reviewed this public request and included no raw logs, full reports, private files, serial numbers, UUIDs, usernames, home paths, device names, addresses, account details, or credentials.
+          required: true

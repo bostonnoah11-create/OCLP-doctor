@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <title>OCLP Doctor — O plus</title>
+  <desc>A minimal open O and small plus in teal and blue, on a softly frosted tile. Original editable vector geometry.</desc>
+  <defs>
+    <linearGradient id="tile" x1="265" y1="96" x2="765" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1FBFC"/>
+      <stop offset="1" stop-color="#CEE5F2"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="345" y1="318" x2="676" y2="705" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25A6B2"/>
+      <stop offset="1" stop-color="#2776B5"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="296" y1="96" x2="704" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  <rect x="96" y="96" width="832" height="832" rx="190" fill="url(#tile)"/>
+  <rect x="98" y="98" width="828" height="828" rx="188" stroke="url(#edge)" stroke-width="4"/>
+  <g stroke="url(#mark)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M502 316A196 196 0 1 0 698 512" stroke-width="72"/>
+    <path d="M677 303V397M630 350H724" stroke-width="40"/>
+  </g>
+</svg>

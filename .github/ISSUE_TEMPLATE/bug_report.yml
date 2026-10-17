@@ -1,0 +1,103 @@
+name: Bug report
+description: Report reproducible OCLP Doctor behavior with a sanitized summary.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please report OCLP Doctor behavior here. The app is independent of Dortania and the official OCLP project.
+
+        This issue will be public. Do not attach raw logs, full reports, crash reports, EFI/NVRAM dumps, private files, or identifying data. Describe the relevant observation in your own words; use a synthetic example if necessary.
+  - type: input
+    id: app-version
+    attributes:
+      label: OCLP Doctor version
+      description: App version/build, or the source commit if built locally.
+      placeholder: "0.5.1 (build 10)"
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model identifier
+      description: Model identifier only. Do not include a serial number, UUID, or device name. Enter Unknown if unavailable.
+      placeholder: "MacPro6,1"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version and build
+      description: Include both when known; otherwise say which is unavailable.
+      placeholder: "Version / build"
+    validations:
+      required: true
+  - type: dropdown
+    id: data-mode
+    attributes:
+      label: Data mode
+      options:
+        - Real collection
+        - Synthetic Mac Pro demo
+        - Synthetic MacBook Pro demo
+        - Synthetic unavailable-data demo
+        - Not applicable / app did not open
+    validations:
+      required: true
+  - type: dropdown
+    id: affected-area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Overview
+        - Hardware
+        - Boot & Security
+        - Patches
+        - Sleep & Wake
+        - Known Issues
+        - Report / clipboard
+        - CLI
+        - Build / launch / window behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest repeatable sequence, including the selected page or command. Remove personal paths and arguments.
+      placeholder: |
+        1. Open the app using ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should OCLP Doctor show or do?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Describe the visible result. A missing observation or log record is not by itself a confirmed hardware failure.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence-summary
+    attributes:
+      label: Sanitized context (optional)
+      description: Summarize relevant item status, source coverage, relative timing, or known OCLP/OpenCore versions. Distinguish installed versions from boot evidence. Do not paste raw logs, complete reports, private files, identifying data, or screenshots containing them.
+      placeholder: "Example: The latest-wake query shows Partial coverage after a timeout; the history query completes."
+  - type: checkboxes
+    id: privacy-review
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this behavior.
+          required: true
+        - label: I reviewed this public issue and included no raw logs, full reports, private files, serial numbers, UUIDs, usernames, home paths, device names, addresses, account details, or credentials.
+          required: true

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Intel tests and app build
+    # Verified 2026-10-18: standard Intel runner, Xcode 26.3 / macOS 26.2 SDK.
+    # https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+    # https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    env:
+      # The image's default Xcode is older; select the SDK needed by glassEffect.
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      OCLP_DOCTOR_BUILD_ROOT: ${{ runner.temp }}/oclp-doctor-build
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        # https://github.com/actions/checkout/releases/tag/v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify selected toolchain
+        run: |
+          test -d "$DEVELOPER_DIR"
+          test "$(/usr/bin/uname -m)" = x86_64
+          /usr/bin/xcodebuild -version
+          /usr/bin/xcrun swift --version
+          SDK_VERSION="$(/usr/bin/xcrun --sdk macosx --show-sdk-version)"
+          case "$SDK_VERSION" in
+            26.*) printf 'Building with macOS SDK %s\n' "$SDK_VERSION" ;;
+            *) printf 'Expected macOS SDK 26; found %s\n' "$SDK_VERSION" >&2; exit 1 ;;
+          esac
+
+      - name: Run automated tests
+        # Synthetic fixtures and bounded process/file tests; no host diagnostic scan.
+        run: bash Scripts/test.sh -j 4
+
+      - name: Build the Intel app
+        run: bash Scripts/build-app.sh "$RUNNER_TEMP/oclp-doctor-app"
+
+      - name: Verify app architecture, deployment target, and ad-hoc signature
+        run: |
+          APP="$RUNNER_TEMP/oclp-doctor-app/OCLP Doctor.app"
+          BINARY="$APP/Contents/MacOS/OCLPDoctor"
+          test -x "$BINARY"
+          test "$(/usr/bin/lipo -archs "$BINARY")" = x86_64
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist")" = 12.0
+          /usr/bin/codesign --verify --strict "$APP"
+          SIGNATURE_DETAILS="$(/usr/bin/codesign -dv --verbose=4 "$APP" 2>&1)"
+          printf '%s\n' "$SIGNATURE_DETAILS" | /usr/bin/grep -Fx 'Signature=adhoc'
+
+      # Native window-layout checks require an interactive desktop and remain local.
+      # This job never launches the app/CLI, collects diagnostics, uploads artifacts,
+      # accesses signing secrets, notarizes, or publishes a release.

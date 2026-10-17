@@ -1,0 +1,18 @@
+OCLP Doctor
+Copyright (c) 2026 bostonnoah11-create
+
+The original source, documentation, and icon assets in this repository are
+provided under the MIT License in LICENSE.
+
+OCLP Doctor is an independent project. It is not affiliated with or endorsed
+by Apple, Dortania, the OpenCore Legacy Patcher project, or Acidanthera.
+Their names identify the platforms and projects discussed by this tool.
+
+Official documentation and source references inform the diagnostic field
+selection and issue summaries. These references are linked in Documentation/.
+They retain their respective licenses and are not relicensed by this project.
+No OCLP, OpenCore, Apple SDK, or operating-system binary is included here.
+
+Package.swift declares no external Swift package dependencies. The app uses
+Apple system frameworks. CI uses actions/checkout without vendoring its source.
+The SVG icon consists of original editable geometry and gradients.

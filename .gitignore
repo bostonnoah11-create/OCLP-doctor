@@ -1,0 +1,16 @@
+.build/
+.swiftpm/
+.DS_Store
+dist/
+*.xcuserstate
+*.xcodeproj/xcuserdata/
+
+# Local diagnostics and development scratch data
+work/
+reports/
+diagnostics/
+.env
+.env.*
+*.p12
+*.p8
+*.mobileprovision
