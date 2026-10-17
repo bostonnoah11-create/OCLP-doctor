@@ -64,7 +64,9 @@ jobs:
 
       - name: Run automated tests
         # Fixture tests only; never launch a real diagnostic scan or GUI window test.
-        run: bash Scripts/test.sh -j 4
+        # Explicitly serialize Swift Testing so wall-clock checks do not compete
+        # with unrelated tests for shared-runner scheduling; keep all assertions.
+        run: bash Scripts/test.sh -j 4 --no-parallel
 
       - name: Build the Intel app
         # The tagged build script strips debug symbols and bundles LICENSE/NOTICE.

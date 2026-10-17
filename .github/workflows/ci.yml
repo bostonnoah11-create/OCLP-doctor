@@ -47,7 +47,9 @@ jobs:
 
       - name: Run automated tests
         # Synthetic fixtures and bounded process/file tests; no host diagnostic scan.
-        run: bash Scripts/test.sh -j 4
+        # Explicitly serialize Swift Testing so wall-clock checks do not compete
+        # with unrelated tests for shared-runner scheduling; keep all assertions.
+        run: bash Scripts/test.sh -j 4 --no-parallel
 
       - name: Build the Intel app
         run: bash Scripts/build-app.sh "$RUNNER_TEMP/oclp-doctor-app"
