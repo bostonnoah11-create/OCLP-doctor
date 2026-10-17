@@ -22,7 +22,6 @@ jobs:
     env:
       # The image's default Xcode is older; select the SDK needed by glassEffect.
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-      OCLP_DOCTOR_BUILD_ROOT: ${{ runner.temp }}/oclp-doctor-build
     defaults:
       run:
         shell: bash
@@ -35,6 +34,7 @@ jobs:
 
       - name: Verify selected toolchain
         run: |
+          printf 'OCLP_DOCTOR_BUILD_ROOT=%s/oclp-doctor-build\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           test -d "$DEVELOPER_DIR"
           test "$(/usr/bin/uname -m)" = x86_64
           /usr/bin/xcodebuild -version
